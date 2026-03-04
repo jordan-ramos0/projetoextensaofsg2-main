@@ -238,7 +238,7 @@ const tokenInput = document.getElementById('token'),
       refreshBtn = document.getElementById('atualizar')
 
 const MAX_BYTES = 20*1024*1024,
-      OWNER='jordan-ramos0', REPO='projetoextensaofsg2', BRANCH='main',
+      OWNER='jordan-ramos0', REPO='projetoextensaofsg2-main', BRANCH='main',
       KEY_TOKEN='powerautomation'
 
 let token = localStorage.getItem(KEY_TOKEN) || ''
@@ -262,7 +262,7 @@ async function validarToken(t){
     return r.ok
   }catch{
     msg('Token inválido')
-    return true}
+    return false}
 }
 
 async function arquivoParaBase64(file,onProg){
@@ -914,7 +914,7 @@ function solveRules(sectionFiles, pdfLengths = {}, maxPages = 100) {
 async function renderPreviewFromSolved(container, solvedPages) {
     container.innerHTML = '';
     for(const item of solvedPages){
-        const fileUrl = `/projetoextensaofsg2/pdfs/${item.fileName}`;
+        const fileUrl = `/projetoextensaofsg2-main/pdfs/${item.fileName}`;
         const loading = pdfjsLib.getDocument(fileUrl);
         const pdf = await loading.promise;
 
@@ -959,7 +959,7 @@ async function renderPreviewFromSolved(container, solvedPages) {
     container.style.justifyItems = 'center';
 
     for(const item of solvedPages){
-        const fileUrl = `/projetoextensaofsg2/pdfs/${item.fileName}`;
+        const fileUrl = `/projetoextensaofsg2-main/pdfs/${item.fileName}`;
         const loading = pdfjsLib.getDocument(fileUrl);
         const pdf = await loading.promise;
 
@@ -1006,7 +1006,7 @@ async function renderSectionWithSolverPreview(section){
 
     for(const fileObj of sectionFiles){
         const fileName = fileObj.fileName;
-        const fileUrl = `/projetoextensaofsg2/pdfs/${fileName}`;
+        const fileUrl = `/projetoextensaofsg2-main/pdfs/${fileName}`;
         const pdf = await pdfjsLib.getDocument(fileUrl).promise;
         pdfLengths[fileName] = pdf.numPages;
         pdf.destroy();
