@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js";
+</script>
+</head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CRUD PDF Fine-Grained</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f6f7fb;margin:0;padding:28px;display:flex;justify-content:center}
+.wrap{width:100%;max-width:700px}
+.card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 8px 30px rgba(13,20,30,0.06)}
+input,button{padding:8px;border-radius:6px;border:1px solid #ccc;width:100%;margin-bottom:10px}
+button{background:#2563eb;color:white;border:none;cursor:pointer}
+button[disabled]{opacity:.6;cursor:not-allowed;}
+progress{width:100%;margin-bottom:10;visibility:hidden}
+.msg{padding:10px;border-radius:6px;background:#fbfdff;border:1px solid #eef6ff;visibility:hidden;margin-top:10px}
+table{width:100%;border-collapse:collapse;margin-top:1px; }
+th,td{border:1px solid #ddd;padding:8px;text-align:left}
+th{background:#f0f0f0}
+table button {
+    width: auto;
+    margin: 1px;
+}
+.hidden{display:none !important;}
+
+
+
+/* só o ponteiro precisa de transform-origin */
+#relógio line { 
+    transform-origin: 50% 50%; 
+}
+
+/* pontos ao redor */
+#relógio circle { 
+  fill: #2563eb; 
+}
+
+/* borda do relógio */
+#relógio circle.borda {
+  fill: none;
+  stroke: #2563eb;
+  stroke-width: 2;
+}
+
+/* animações do ponteiro */
+#relógio.wait line {
+  animation: ponteiro20s steps(8) forwards;
+  animation-duration: 19s;
+}
+
+#relógio.updating line {
+  animation: ponteiro1s steps(8) forwards;
+  animation-duration: 0.8s;
+}
+
+@keyframes ponteiro20s {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes ponteiro1s {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+</style>
+
+</style>
+
+</style>
+</head>
+<body>
+<div class="wrap">
+    <h3 style="display:block; text-align:center" class="conteudoPrincipal hidden">Adicionar Artigos</h3>
+  <div class="card">
+    
+    <input id="token" type="text" placeholder="Cole ou clique para colar token"/>
+    <button id="enviarToken">Enviar token</button>
+    
+    <div class="conteudoPrincipal hidden">
+        <div style="display:flex; justify-content: center; align-items:center; gap:10px; font-family:Arial, sans-serif; font-size:16px; margin-bottom:20px;">
+            <label for="arquivo" style="padding:10px 14px; background:#f0f0f0; color:#000; border:1px solid #a9a9a9; border-radius:3px; cursor:pointer; font-family:system-ui,sans-serif; font-size:18px;">Escolher arquivo</label>
+            </label>
+            <p id="nomearquivo" style="margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70%;">
+              Nenhum arquivo selecionado
+            </p>
+            <input autocomplete="off" type="file" id="arquivo" style="display:none;"
+                   onchange="(function(e){document.getElementById('nomearquivo').textContent = e.target.files[0]?.name || 'Nenhum arquivo selecionado';})(event)">
+          </div>
+          
+      <button id="enviar">Enviar PDF</button>
+      <progress id="progresso" value="0" max="100"></progress>
+    </div>
+      <div id="msg" class="msg"></div>
+  </div>
+
+  <div class="conteudoPrincipal hidden">
+    <h3 style="display:block; text-align:center">Gerenciar Acervo</h3>
+     <div class="card" style="margin-top:20px;">
+        <svg style="margin:auto;margin-top:0px;margin-bottom:0px;display:block;" id="relógio" width="50" height="50" viewBox="0 0 70 70" onload="(s=>{const size=70,c=size/2,r=25,numPontos=8,pR=3,pCor='#2563eb',lCor='#2563eb',lW=3;const borda=document.createElementNS('http://www.w3.org/2000/svg','circle');borda.setAttribute('cx',c);borda.setAttribute('cy',c);borda.setAttribute('r',r+5);borda.setAttribute('class','borda');s.appendChild(borda);for(let i=0;i<numPontos;i++){const a=i*2*Math.PI/numPontos,p=document.createElementNS('http://www.w3.org/2000/svg','circle');p.setAttribute('cx',c+r*Math.cos(a));p.setAttribute('cy',c+r*Math.sin(a));p.setAttribute('r',pR);p.setAttribute('fill',pCor);s.appendChild(p);}const l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',c);l.setAttribute('y1',c);l.setAttribute('x2',c);l.setAttribute('y2',c-r);l.setAttribute('stroke',lCor);l.setAttribute('stroke-width',lW);l.setAttribute('stroke-linecap','round');s.appendChild(l);})(this)"></svg>
+        <button id="atualizar" style="">↻ Atualizar</button>
+        <div style="max-height:300px; overflow-y:auto; border:1px solid #ddd; border-radius:6px;">
+            <table id="listaArquivos">
+            <thead><tr><th>Arquivos existentes</th><th style="width:1%">Ações</th></tr></thead>
+            <tbody></tbody>
+            </table>
+        </div>
+     </div>
+    </div>   
+
+
+
+
+
+
+   
+<div class="conteudoPrincipal hidden">
+    <h3 style="display:block; text-align:center">Configuração de Marcador</h3>
+    <div class="card" style="margin-top:20px;">
+      <div id="marcadorFormContainer">
+        <form id="marcadorForm" style="display:flex; flex-direction:column; gap:10px;">
+          <label>
+            Nome do Marcador:
+            <input type="text" id="marcadorNome" placeholder="Ex: Tópico 1">
+          </label>
+          <label for="marcadorCor">Cor do marcador:</label>
+          <input type="color" id="marcadorCor" name="marcadorCor" value="#ff0000" 
+          style="margin-left:6px; width:30px; height:30px; padding:0; border:1px solid #ccc; border-radius:4px; cursor:pointer;">
+   
+        
+            
+          
+         <!-- Seções Mobile / Desktop -->
+          <h4 style="margin-top:8px;">Páginas Mobile</h4>
+          <div id="mobileSection" class="card" style="padding:12px;margin-bottom:12px;">
+            <h4>Páginas Mobile — Preview</h4>
+            <div id="mobilePreviewContainer" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+              <button id="addArquivoMobileBtn" type="button">+ Adicionar Arquivo</button>
+              <small style="color:#666">Adicione arquivo e crie regras (Todas / Intervalo / Específicas + Exceto).</small>
+            </div>
+            <div id="mobileFilesContainer"></div>
+          </div>
+
+          <h4>Páginas Desktop</h4>
+          <div id="desktopSection" class="card" style="padding:12px;margin-bottom:12px;">
+            <h4>Páginas Desktop — Preview</h4>
+            <div id="desktopPreviewContainer" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+              <button id="addArquivoDesktopBtn" type="button">+ Adicionar Arquivo</button>
+              <small style="color:#666">Adicione arquivo e crie regras (Todas / Intervalo / Específicas + Exceto).</small>
+            </div>
+            <div id="desktopFilesContainer"></div>
+          </div>
+
+          <!-- Modal/inline composer container (reutilizável) -->
+          <div id="ruleComposerContainer" class="hidden" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border:1px solid #ddd;padding:16px;border-radius:8px;z-index:999;box-shadow:0 10px 40px rgba(0,0,0,0.12);max-width:420px;width:90%;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong id="composerTitle">Criar Regra</strong>
+              <button id="closeComposerBtn" type="button">✖</button>
+            </div>
+            <div id="composerBody" style="margin-top:8px;"></div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+              <button id="composerCancelBtn" type="button">Cancelar</button>
+              <button id="composerSaveBtn" type="button">Salvar regra</button>
+            </div>
+          </div>
+
+
+
+          <button type="submit" id="adicionarMarcadorBtn">Adicionar Marcador</button>
+        </form>
+      
+        
+      </div>
+
+      
+
+       <!--
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <formulário>
+          <>Nome do Marcador:</> Tópico 1
+          <>Arquivos(s):</> file1.pdf 
+          <>Páginas:</> Todas dos pdf(s); de página X à Y; página X; exceto pagina Y;
+          Color picker <input type="color" value="#2563eb" style="width:100%; height:100%;">
+
+        <button>Adicionar nova entrada</button> (mostra o formulário ao clicar. transforma-se em botão Salvar, cria botão Descartar alteraçoes ao lado.)
+        <tabela de marcadores (não necessariamente uma tabela, porque tem que funcionar tanto no celular quanto pc e não quero overflow que tem que arrastar horizontal como uma tabela teria com colunas demais.)>
+          opção de editar marcador existente (aí abre o formulário)
+          opção de deletar marcador existente  (tem que visualmente mostrar que o botão pressionado está tentando fazer algo)
+        </lista>
+              
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      </div>
+    </div>
+  </div>
+-->
+
+
+
+
+</div>
+
+<h3 style="display:block; text-align:center">Marcadores Existentes</h3>
+      <div class="card" style="margin-top:20px;">
+        <div id="marcadoresContainer" style="margin-top:20px;">
+          <!-- Marcadores adicionados aparecerão aqui -->
+        </div>
+      </div>
+
+  
+
+
+<script>
+
+
+
+
+
+const tokenInput = document.getElementById('token'),
+      enviarTokenBtn = document.getElementById('enviarToken'),
+      arquivoInput = document.getElementById('arquivo'),
+      enviarBtn = document.getElementById('enviar'),
+      msgDiv = document.getElementById('msg'),
+      progresso = document.getElementById('progresso'),
+      listaArquivos = document.getElementById('listaArquivos').querySelector('tbody'),
+      conteudoPrincipal = document.querySelectorAll('.conteudoPrincipal'),
+      refreshBtn = document.getElementById('atualizar')
+
+const MAX_BYTES = 20*1024*1024,
+      OWNER='jordan-ramos0', REPO='projetoextensaofsg2', BRANCH='main',
+      KEY_TOKEN='powerautomation'
+
+let token = localStorage.getItem(KEY_TOKEN) || ''
+
+function msg(t='', e=false){
+  if(!t){ msgDiv.style.visibility='hidden'; return }
+  msgDiv.style.visibility='visible'
+  msgDiv.innerHTML = t
+  msgDiv.style.background = e ? '#ffeaea' : '#fbfdff'
+}
+
+function salvarToken(t){ localStorage.setItem(KEY_TOKEN,t); token=t }
+
+async function validarToken(t){
+    msg('Validando token...')
+  try{
+    const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/pdfs/?ref=${BRANCH}`,{
+      headers:{Authorization:`Bearer ${t}`}
+    })
+    msg('')
+    return r.ok
+  }catch{
+    msg('Token inválido')
+    return true}
+}
+
+async function arquivoParaBase64(file,onProg){
+  const ab = await file.arrayBuffer()
+  const bytes = new Uint8Array(ab)
+  let binary='', chunk=0x8000
+  for(let i=0;i<bytes.length;i+=chunk){
+    binary += String.fromCharCode.apply(null, bytes.subarray(i,i+chunk))
+    if(onProg) onProg(Math.min(i+chunk, bytes.length)/bytes.length*50)
+    await new Promise(r=>setTimeout(r,0))
+  }
+  return btoa(binary)
+}
+
+function setEstadoPonteiro(estado) {
+    
+    if (estado === 'updating') {
+        relógio.classList.add('wait')
+        relógio.classList.add('updating'); // adiciona, não remove wait
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = 'Atualizando…';
+    } else if (estado === 'wait') {
+        relógio.classList.add('updating')
+        relógio.classList.remove('updating');
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = '↻ Atualizar';
+    }
+}
+
+
+
+
+function enviarArquivoXHR(path,b64,sha,onProg){
+  return new Promise((resolve,reject)=>{
+    const url=`https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(path)}`
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', url)
+    xhr.setRequestHeader('Authorization',`Bearer ${token}`)
+    xhr.setRequestHeader('Content-Type','application/json')
+    xhr.upload.onprogress = e => {if(e.lengthComputable && onProg) onProg(50+e.loaded/e.total*50)}
+    xhr.onload = ()=>xhr.status>=200&&xhr.status<300?resolve(JSON.parse(xhr.responseText)):reject(new Error(xhr.responseText))
+    xhr.onerror = ()=>reject(new Error('Erro na requisição'))
+    const body={message:`Adiciona/atualiza ${path}`,content:b64,branch:BRANCH}
+    if(sha) body.sha = sha
+    xhr.send(JSON.stringify(body))
+  })
+}
+
+async function listarArquivos(){
+  const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/pdfs/?ref=${BRANCH}`,{headers:{Authorization:`Bearer ${token}`}})
+  if(!r.ok) throw new Error('Falha ao listar arquivos')
+  return (await r.json()).filter(f=>f.type==='file')
+}
+
+
+let ultimaAtualizacao = 0;
+const INTERVALO = 20*1000; // 30s
+let agendar = false
+
+async function agendadorAtualizarLista() { // atualizaçao periodica automatica da lista, redudante mas queria que funcionasse com certeza
+    console.debug("teste1")
+    if (agendadorAtualizarLista.loop) clearTimeout(agendadorAtualizarLista.loop)
+    if (document.visibilityState !== 'visible') {
+        agendar = false
+        if (agendadorAtualizarLista.loop) clearTimeout(agendadorAtualizarLista.loop)
+        return
+    }
+    const agora = performance.now();
+    const tempoRestante = Math.max(0, INTERVALO - (agora - ultimaAtualizacao));
+    if (agora - ultimaAtualizacao >= INTERVALO) {
+        if (agendadorAtualizarLista.loop) clearTimeout(agendadorAtualizarLista.loop)
+        agendar = false
+        refreshBtn.onclick()
+        console.debug("teste3")
+
+        }
+console.debug("teste4")
+    if (agendar == false) {
+        agendar = true;
+        agendadorAtualizarLista.loop = setTimeout(async () => {
+        agendar = false
+        console.debug("teste7")
+        await agendadorAtualizarLista();
+        }, tempoRestante);
+        return
+    }
+    agendar = false
+}
+
+
+
+let arquivos = []
+async function atualizarLista(){
+  ultimaAtualizacao = performance.now()
+  await agendadorAtualizarLista()
+  try{
+    if(!token) return
+    arquivos = await listarArquivos()
+    atualizarEscolhasArquivosMarcador()
+    listaArquivos.innerHTML=''
+    arquivos.forEach(f=>{
+      const tr = document.createElement('tr')
+      const linkTd = document.createElement('td')
+      const link = document.createElement('a')
+      link.href = f.html_url || `https://github.com/${OWNER}/${REPO}/blob/${BRANCH}/pdfs/${encodeURIComponent(f.name)}`
+      link.textContent = f.name
+      link.target='_blank'
+      linkTd.appendChild(link)
+
+      const actionsTd = document.createElement('td')
+      const delBtn = document.createElement('button')
+      delBtn.textContent='Excluir'
+      delBtn.onclick = async ()=>{
+        if(!confirm(`Excluir ${f.name}?`)) return
+        try{
+          await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent('pdfs/'+f.name)}`,{
+            method:'DELETE',
+            headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
+            body:JSON.stringify({message:`Remove ${f.name}`,branch:BRANCH,sha:f.sha})
+          })
+          msg(`${f.name} removido. As operações podem demorar alguns minutos para atualizarem.`)
+          refreshBtn.onclick()
+        }catch(e){msg('Erro: '+e.message,true)}
+      }
+      actionsTd.appendChild(delBtn)
+
+      tr.appendChild(linkTd)
+      tr.appendChild(actionsTd)
+      listaArquivos.appendChild(tr)
+    })
+  }catch(e){msg('Erro: '+e.message,true)}
+}
+
+
+
+
+
+async function iniciarUpload(){
+  msg('')
+  const f = arquivoInput.files[0]
+  if(!f){ msg('Selecione PDF',true); return }
+
+  const arquivos = await listarArquivos()
+  const arquivoExistente = arquivos.find(a => a.name === f.name)
+  const sha = arquivoExistente ? arquivoExistente.sha : undefined
+
+  if(f.size > MAX_BYTES){ msg('Arquivo muito grande',true); return }
+  const path = 'pdfs/' + f.name
+  progresso.style.visibility='visible'
+  progresso.value = 0
+  enviarBtn.disabled = true
+
+  try{
+    msg('Convertendo...')
+    const b64 = await arquivoParaBase64(f, v => progresso.value = v)
+    msg('Enviando... Não fechar navegador')
+    await enviarArquivoXHR(path, b64, sha, v => progresso.value = v)
+    progresso.value = 100
+    msg('Enviado com sucesso! Arquivo pode demorar alguns minutos para ser listado')
+    refreshBtn.onclick()
+  } catch(e){ msg('Erro: ' + e.message,true) }
+  finally { enviarBtn.disabled=false; setTimeout(()=>progresso.style.visibility='hidden',500) }
+}
+
+enviarBtn.onclick=iniciarUpload
+
+tokenInput.addEventListener('focus', async()=>{
+  try{
+    const text = await navigator.clipboard.readText()
+    if(text.trim()) tokenInput.value = text.trim()
+  }catch{}
+})
+
+
+//0000000000000
+const savedMarkers = []; // marcadores salvos em memória
+const markersListContainer = document.getElementById('marcadoresContainer'); // <div> para lista de marcadores
+
+let choicesArquivos = null
+async function atualizarEscolhasArquivosMarcador(){
+
+  const select = document.getElementById('marcadorArquivos');
+  if (!select) return;
+
+  const validFiles = arquivos.map(a => a.name);
+  let selected = choicesArquivos ? choicesArquivos.getValue(true) : [];
+
+  // Remove any selections that no longer exist
+  if (choicesArquivos) {
+    selected.forEach(v => {
+      if (!validFiles.includes(v)) choicesArquivos.removeActiveItemsByValue(v);
+    });
+    // refresh selected array after removal
+    selected = choicesArquivos.getValue(true);
+  }
+
+  // Build choicesData excluding already selected items
+  const choicesData = arquivos
+    .filter(a => !selected.includes(a.name))
+    .map(a => ({ value: a.name, label: a.name }));
+
+  if (!choicesArquivos) {
+    // Initialize Choices
+    choicesArquivos = new Choices(select, {
+      removeItemButton: true,
+      shouldSort: false,
+      choices: choicesData,
+    });
+  } else {
+    // Replace options, keeping current selection intact
+    choicesArquivos.setChoices(choicesData, 'value', 'label', true);
+  }
+}
+
+
+
+
+/* ---------- composer e UI para Mobile/Desktop (sem React) ---------- */
+
+/* Estrutura em memória do marcador sendo editado */
+const marcadorDraft = {
+  nome: '', // será atualizado do input marcadorNome quando salvar
+  paginas: {
+    mobile: [], // "fileName.pdf": [ regraObj, ... ]
+    desktop: []
+  }
+};
+
+/* Utilitários */
+function sanitizeInt(v) {
+  const n = Number.parseInt(String(v).trim(), 10);
+  return Number.isFinite(n) && !Number.isNaN(n) ? n : null;
+}
+function uniqueArray(a){ return Array.from(new Set(a.map(x=>Number(x))).values()).sort((x,y)=>x-y); }
+
+/* Elementos */
+const addArquivoMobileBtn = document.getElementById('addArquivoMobileBtn');
+const addArquivoDesktopBtn = document.getElementById('addArquivoDesktopBtn');
+const mobileFilesContainer = document.getElementById('mobileFilesContainer');
+const desktopFilesContainer = document.getElementById('desktopFilesContainer');
+
+const ruleComposerContainer = document.getElementById('ruleComposerContainer');
+const composerBody = document.getElementById('composerBody');
+const composerTitle = document.getElementById('composerTitle');
+const closeComposerBtn = document.getElementById('closeComposerBtn');
+const composerCancelBtn = document.getElementById('composerCancelBtn');
+const composerSaveBtn = document.getElementById('composerSaveBtn');
+
+let composerState = null; // { section: 'mobile'|'desktop', arquivo: 'file.pdf', editing: {index, ...} | null }
+
+/* Renderização das seções (arquivos + suas regras) */
+function renderSection(section) {
+  const container = section === 'mobile' ? mobileFilesContainer : desktopFilesContainer;
+  container.innerHTML = '';
+  const filesArr = marcadorDraft.paginas[section] || [];
+
+  if (filesArr.length === 0) {
+    container.innerHTML = '<div style="color:#666;font-size:13px">Nenhum arquivo adicionado nesta seção.</div>';
+    return;
+  }
+
+  filesArr.forEach((fileObj, fileIdx) => {
+    const { fileName, rules } = fileObj;
+    const card = document.createElement('div');
+    card.className = 'arquivoCard';
+    card.style = `
+      border:1px solid #eee;
+      padding:8px;
+      border-radius:6px;
+      margin-bottom:8px;
+      background:#fbfdff;
+      position:relative;
+    `;
+
+    card.innerHTML = `
+      <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          margin-left:35px;
+          flex-wrap:wrap;
+      ">
+        <strong style="
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display:block;
+        ">${fileName}</strong>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+          <div style="display:flex;gap:2px; margin:1px">
+            <button data-action="moveFileUp" title="Subir" style="font-size:11px;">↑</button>
+            <button data-action="moveFileDown" title="Descer" style="font-size:11px;">↓</button>
+          </div>
+          <button data-action="addRule">+ Regra</button>
+          <button data-action="removeArquivo">Remover Arquivo</button>
+        </div>
+      </div>
+      <ul class="regrasLista" style="margin-top:8px;list-style:none;padding-left:0;"></ul>
+    `;
+
+    // Render each rule line
+    const ul = card.querySelector('.regrasLista');
+    rules.forEach((r, rIdx) => {
+      const li = document.createElement('li');
+      li.style = 'padding:6px;border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:center;';
+      li.innerHTML = `
+        <div style="font-size:13px;color:#222">${renderRuleText(r)}</div>
+        <div style="display:flex;gap:6px;">
+          <button data-action="moveUp" title="Subir">↑</button>
+          <button data-action="moveDown" title="Descer">↓</button>
+          <button data-action="edit" title="Editar">✎</button>
+          <button data-action="delete" title="Remover">✖</button>
+        </div>
+      `;
+      li.querySelector('[data-action="moveUp"]').onclick = () => swapRule(section, fileIdx, rIdx, rIdx - 1);
+      li.querySelector('[data-action="moveDown"]').onclick = () => swapRule(section, fileIdx, rIdx, rIdx + 1);
+      li.querySelector('[data-action="edit"]').onclick = () => openComposer(section, fileIdx, rIdx);
+      li.querySelector('[data-action="delete"]').onclick = () => { rules.splice(rIdx, 1); renderSection(section); };
+      ul.appendChild(li);
+    });
+
+    // Button actions
+    card.querySelector('[data-action="addRule"]').onclick = () => openComposer(section, fileIdx, null);
+    card.querySelector('[data-action="removeArquivo"]').onclick = () => {
+      filesArr.splice(fileIdx, 1);
+      renderSection(section);
+    };
+    card.querySelector('[data-action="moveFileUp"]').onclick = () => {
+      if (fileIdx === 0) return;
+      [filesArr[fileIdx - 1], filesArr[fileIdx]] = [filesArr[fileIdx], filesArr[fileIdx - 1]];
+      renderSection(section);
+    };
+    card.querySelector('[data-action="moveFileDown"]').onclick = () => {
+      if (fileIdx === filesArr.length - 1) return;
+      [filesArr[fileIdx + 1], filesArr[fileIdx]] = [filesArr[fileIdx], filesArr[fileIdx + 1]];
+      renderSection(section);
+    };
+
+    container.appendChild(card);
+  });
+}
+
+/* Render textual de uma regra (para lista) */
+function renderRuleText(rule) {
+  // rule: { base: 'todas'|'intervalo'|'especificas', inicio?, fim?, paginas?:[], excetos?: [ {tipo, inicio,fim, paginas[]} ] }
+  let parts = [];
+  if(rule.base === 'todas') parts.push('Todas');
+  else if(rule.base === 'intervalo') parts.push(`${rule.inicio}-${rule.fim}`);
+  else if(rule.base === 'especificas') parts.push(rule.paginas.join(','));
+  // excetos
+  if(Array.isArray(rule.excetos) && rule.excetos.length){
+    rule.excetos.forEach(exc => {
+      if(exc.tipo === 'intervalo') parts.push(`exceto ${exc.inicio}-${exc.fim}`);
+      else if(exc.tipo === 'especificas') parts.push(`exceto ${exc.paginas.join(',')}`);
+    });
+  }
+  return parts.join(' ');
+}
+
+/* Troca de posição de regra */
+function swapRule(section, fileIdx, i, j){
+  const filesArr = marcadorDraft.paginas[section];
+  if(!filesArr || !filesArr[fileIdx]) return;
+  const rules = filesArr[fileIdx].rules;
+  if(!rules || i<0 || j<0 || i>=rules.length || j>=rules.length) return;
+  [rules[i], rules[j]] = [rules[j], rules[i]];
+  renderSection(section);
+}
+
+
+/* Abrir composer para criar/editar regra */
+function openComposer(section, fileIdx, editingIndex=null){
+  const fileObj = marcadorDraft.paginas[section][fileIdx];
+  const fileName = fileObj.fileName;
+  const rules = fileObj.rules;
+
+  composerState = { section, fileIdx, editingIndex };
+  composerTitle.textContent = editingIndex===null ? `Nova regra — ${fileName} (${section})` : `Editar regra — ${fileName} (${section})`;
+  composerBody.innerHTML = '';
+
+  // Base chooser
+  const baseWrap = document.createElement('div');
+  baseWrap.innerHTML = `
+    <label><input type="radio" name="baseChoice" value="todas"> Todas</label>
+    <label style="margin-left:8px;"><input type="radio" name="baseChoice" value="intervalo"> Intervalo</label>
+    <label style="margin-left:8px;"><input type="radio" name="baseChoice" value="especificas"> Específicas</label>
+  `;
+  composerBody.appendChild(baseWrap);
+
+  const intervaloDiv = document.createElement('div'); intervaloDiv.className='hidden'; intervaloDiv.style='margin-top:8px;';
+  intervaloDiv.innerHTML = `De <input id="c_inicio" style="width:80px;margin-left:6px;margin-right:6px"> Até <input id="c_fim" style="width:80px;margin-left:6px">`;
+  composerBody.appendChild(intervaloDiv);
+
+  const especificasDiv = document.createElement('div'); especificasDiv.className='hidden'; especificasDiv.style='margin-top:8px;';
+  especificasDiv.innerHTML = `Páginas (vírgula): <input id="c_paginas" style="width:200px;margin-left:6px">`;
+  composerBody.appendChild(especificasDiv);
+  // alternar visibilidade dos inputs conforme o radio escolhido
+baseWrap.querySelectorAll('input[name="baseChoice"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    intervaloDiv.classList.add('hidden');
+    especificasDiv.classList.add('hidden');
+
+    if (radio.value === 'intervalo') {
+      intervaloDiv.classList.remove('hidden');
+    } else if (radio.value === 'especificas') {
+      especificasDiv.classList.remove('hidden');
+    }
+  });
+});
+
+  const excetoListDiv = document.createElement('div'); excetoListDiv.style='margin-top:10px;border-top:1px dashed #eee;padding-top:8px;';
+  excetoListDiv.innerHTML = `<div style="font-size:13px;color:#666">Exceto (opcional). Adicione um item de exclusão:</div>
+    <div style="margin-top:6px;">
+      <select id="excetoTipo">
+        <option value="intervalo">Intervalo</option>
+        <option value="especificas">Específicas</option>
+      </select>
+      <span id="excetoInputs" style="margin-left:6px"></span>
+      <button id="excetoAddBtn" type="button" style="margin-left:8px">Adicionar exceto</button>
+    </div>
+    <ul id="excetoList" style="margin-top:8px;list-style:none;padding-left:0;"></ul>
+  `;
+  composerBody.appendChild(excetoListDiv);
+
+  const composerExcetos = [];
+  const excetoTipoSel = excetoListDiv.querySelector('#excetoTipo');
+  const excetoInputsSpan = excetoListDiv.querySelector('#excetoInputs');
+  const excetoListUl = excetoListDiv.querySelector('#excetoList');
+
+  function renderExcetoList(){
+    excetoListUl.innerHTML = '';
+    composerExcetos.forEach((e,i)=>{
+      const li = document.createElement('li');
+      li.style='padding:6px;border-top:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;';
+      li.innerHTML = `<span>${e.tipo === 'intervalo' ? `${e.inicio}-${e.fim}` : e.paginas.join(',')}</span><div><button data-i="${i}">✖</button></div>`;
+      li.querySelector('button').onclick = ()=> { composerExcetos.splice(i,1); renderExcetoList(); };
+      excetoListUl.appendChild(li);
+    });
+  }
+
+  function updateExcetoInputs(){
+    excetoInputsSpan.innerHTML = '';
+    if(excetoTipoSel.value === 'intervalo'){
+      excetoInputsSpan.innerHTML = `De <input id="ex_inicio" style="width:70px;margin-left:6px"> Até <input id="ex_fim" style="width:70px;margin-left:6px">`;
+    } else {
+      excetoInputsSpan.innerHTML = `Páginas: <input id="ex_paginas" style="width:140px;margin-left:6px">`;
+    }
+  }
+  excetoTipoSel.onchange = updateExcetoInputs;
+  updateExcetoInputs();
+
+  excetoListDiv.querySelector('#excetoAddBtn').onclick = ()=>{
+    if(excetoTipoSel.value === 'intervalo'){
+      const si = sanitizeInt(document.getElementById('ex_inicio').value);
+      const ei = sanitizeInt(document.getElementById('ex_fim').value);
+      if(si===null||ei===null||si>ei){ alert('Intervalo inválido'); return; }
+      composerExcetos.push({ tipo:'intervalo', inicio:si, fim:ei });
+    } else {
+      const raw = document.getElementById('ex_paginas').value || '';
+      const pages = raw.split(',').map(x=>sanitizeInt(x)).filter(x=>x!==null);
+      if(!pages.length){ alert('Páginas inválidas'); return; }
+      composerExcetos.push({ tipo:'especificas', paginas: uniqueArray(pages) });
+    }
+    renderExcetoList();
+  };
+
+  if(editingIndex !== null){
+    const existing = rules[editingIndex];
+    if(existing){
+      const baseRadio = composerBody.querySelector(`input[name="baseChoice"][value="${existing.base}"]`);
+      if(baseRadio) baseRadio.checked = true, baseRadio.onchange && baseRadio.onchange();
+      if(existing.base === 'intervalo'){ document.getElementById('c_inicio').value = existing.inicio; document.getElementById('c_fim').value = existing.fim; }
+      if(existing.base === 'especificas'){ document.getElementById('c_paginas').value = existing.paginas.join(','); }
+      if(Array.isArray(existing.excetos)) existing.excetos.forEach(exc=>composerExcetos.push({...exc, paginas: exc.paginas?.slice()}));
+      renderExcetoList();
+    }
+  }
+
+  ruleComposerContainer.classList.remove('hidden');
+  closeComposerBtn.onclick = closeComposer;
+  composerCancelBtn.onclick = closeComposer;
+
+  composerSaveBtn.onclick = ()=>{
+    const base = composerBody.querySelector('input[name="baseChoice"]:checked');
+    if(!base){ alert('Escolha uma base (Todas, Intervalo ou Específicas)'); return; }
+    const baseVal = base.value;
+    const newRule = { base: baseVal };
+    if(baseVal === 'intervalo'){
+      const si = sanitizeInt(document.getElementById('c_inicio').value);
+      const ei = sanitizeInt(document.getElementById('c_fim').value);
+      if(si===null||ei===null||si>ei){ alert('Intervalo inválido'); return; }
+      newRule.inicio = si; newRule.fim = ei;
+    } else if(baseVal === 'especificas'){
+      const pages = (document.getElementById('c_paginas').value||'').split(',').map(x=>sanitizeInt(x)).filter(x=>x!==null);
+      if(!pages.length){ alert('Específicas inválidas'); return; }
+      newRule.paginas = uniqueArray(pages);
+    }
+    if(composerExcetos.length) newRule.excetos = composerExcetos.map(e=>({ ...e, paginas: uniqueArray(e.paginas||[]) }));
+    if(editingIndex === null) rules.push(newRule);
+    else rules[editingIndex] = newRule;
+    closeComposer();
+    renderSection(section);
+  };
+}
+
+/* Close composer */
+function closeComposer(){
+  composerState = null;
+  ruleComposerContainer.classList.add('hidden');
+  composerBody.innerHTML = '';
+}
+
+/* Adicionar arquivo à seção (chama Choices selector inline) */
+function promptAddArquivoToSection(section) {
+  const overlay = document.createElement('div');
+  overlay.style = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+  overlay.innerHTML = `
+    <div style="background:white;padding:20px;border-radius:6px;width:300px;">
+      <div style="margin-bottom:12px;font-weight:bold">Adicionar Arquivos (${section})</div>
+      <select id="addArquivoSelect" multiple style="width:100%;height:100px"></select>
+      <div style="margin-top:12px;text-align:right;">
+        <button id="cCancel">Cancelar</button>
+        <button id="cOk">Adicionar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const select = overlay.querySelector('#addArquivoSelect');
+
+  // Populate select with current arquivos
+  arquivos.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.name;
+    opt.textContent = f.name;
+    select.appendChild(opt);
+  });
+
+  // Initialize Choices.js on the select
+  const choicesInstance = new Choices(select, {
+    removeItemButton: true,
+    shouldSort: false
+  });
+
+  overlay.querySelector('#cCancel').onclick = () => {
+    choicesInstance.destroy(); // cleanup Choices instance
+    overlay.remove();
+  };
+
+  overlay.querySelector('#cOk').onclick = () => {
+    const selectedFiles = choicesInstance.getValue(true); // get selected values
+    if (!selectedFiles.length) { alert('Selecione pelo menos um arquivo'); return; }
+    
+    if (!Array.isArray(marcadorDraft.paginas[section])) {
+      marcadorDraft.paginas[section] = [];
+    }
+
+    selectedFiles.forEach(f => marcadorDraft.paginas[section].push({ fileName: f, rules: [] }));
+
+    renderSection(section);
+
+    choicesInstance.destroy();
+    overlay.remove();
+  };
+}
+
+
+
+/* inicialização dos botões */
+addArquivoMobileBtn.onclick = ()=> promptAddArquivoToSection('mobile');
+addArquivoDesktopBtn.onclick = ()=> promptAddArquivoToSection('desktop');
+
+/* Exponha função para quando a lista `arquivos` for atualizada */
+window.renderAllSections = function(){
+  // Ensure existing structure
+  if(!marcadorDraft.paginas.mobile) marcadorDraft.paginas.mobile = {};
+  if(!marcadorDraft.paginas.desktop) marcadorDraft.paginas.desktop = {};
+  renderSection('mobile');
+  renderSection('desktop');
+};
+
+/* Opção: vincular salvar do formulário para capturar nome e gerar JSON final */
+document.getElementById('marcadorForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    marcadorDraft.nome = document.getElementById('marcadorNome').value.trim() || 'Marcador sem nome';
+    marcadorDraft.cor = document.getElementById('marcadorCor').value;
+    
+});
+
+
+document.getElementById('adicionarMarcadorBtn').onclick = () => {
+    // Garante que o draft tem nome
+    marcadorDraft.nome = document.getElementById('marcadorNome').value.trim() || 'Marcador sem nome';
+    marcadorDraft.cor = document.getElementById('marcadorCor').value;
+
+    addDraftToSavedMarkers();
+    alert('Marcador salvo!');
+};
+
+
+
+
+function solveRules(sectionFiles, pdfLengths = {}, maxPages = 100) {
+    const solved = [];
+    let order = 1; // global page order
+
+    for (const fileObj of sectionFiles) {
+        const { fileName, rules } = fileObj;
+        const totalPages = pdfLengths[fileName] || maxPages;
+
+        for (const r of rules) {
+            let pages = [];
+
+            // Base pages
+            if (r.base === 'todas') {
+                pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+            } else if (r.base === 'intervalo') {
+                const start = Math.max(1, r.inicio);
+                const end = Math.min(r.fim, totalPages);
+                pages = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+            } else if (r.base === 'especificas') {
+                pages = (r.paginas || []).filter(p => p >= 1 && p <= totalPages);
+            }
+
+            // Apply excetos
+            if (Array.isArray(r.excetos)) {
+                for (const ex of r.excetos) {
+                    if (ex.tipo === 'intervalo') {
+                        pages = pages.filter(p => p < ex.inicio || p > ex.fim);
+                    } else if (ex.tipo === 'especificas') {
+                        const excPages = ex.paginas || [];
+                        pages = pages.filter(p => !excPages.includes(p));
+                    }
+                }
+            }
+
+            // Append with global order
+            pages.forEach(p => solved.push({ order: order++, fileName, page: p }));
+        }
+    }
+    return solved;
+}
+
+
+
+/* ------------------- RENDER DE MINIATURAS USANDO O SOLVER ------------------- */
+async function renderPreviewFromSolved(container, solvedPages) {
+    container.innerHTML = '';
+    for(const item of solvedPages){
+        const fileUrl = `/projetoextensaofsg2/pdfs/${item.fileName}`;
+        const loading = pdfjsLib.getDocument(fileUrl);
+        const pdf = await loading.promise;
+
+        if(item.page <= pdf.numPages){
+            const page = await pdf.getPage(item.page);
+            const viewport = page.getViewport({scale:0.15});
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            await page.render({canvasContext:ctx, viewport}).promise;
+
+            // legenda with global order
+            const legenda = document.createElement('div');
+            legenda.style.fontSize = '11px';
+            legenda.style.color = '#333';
+            legenda.textContent = `${item.order}º - Pg.${item.page} de ${item.fileName}`;
+
+            const wrapper = document.createElement('div');
+            wrapper.style.display='flex';
+            wrapper.style.flexDirection='column';
+            wrapper.style.alignItems='center';
+            wrapper.appendChild(canvas);
+            wrapper.appendChild(legenda);
+            container.appendChild(wrapper);
+        }
+        pdf.destroy();
+    }
+}
+
+
+/* ------------------- FUNÇÃO DE RENDER DA SEÇÃO ------------------- */
+async function renderPreviewFromSolved(container, solvedPages) {
+    container.innerHTML = '';
+
+    // Responsive flex/grid wrapper
+    container.style.display = 'grid';
+    container.style.gridTemplateColumns = 'repeat(auto-fit, minmax(100px, 1fr))';
+    container.style.gap = '8px';
+    container.style.justifyItems = 'center';
+
+    for(const item of solvedPages){
+        const fileUrl = `/projetoextensaofsg2/pdfs/${item.fileName}`;
+        const loading = pdfjsLib.getDocument(fileUrl);
+        const pdf = await loading.promise;
+
+        if(item.page <= pdf.numPages){
+            const page = await pdf.getPage(item.page);
+            const viewport = page.getViewport({scale:0.15});
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            await page.render({canvasContext:ctx, viewport}).promise;
+
+            // legenda
+            const legenda = document.createElement('div');
+            legenda.style.fontSize = '11px';
+            legenda.style.color = '#333';
+            legenda.style.textAlign = 'center';
+            legenda.textContent = `${item.order}º - Pg.${item.page} de ${item.fileName}`;
+
+            const wrapper = document.createElement('div');
+            wrapper.style.display='flex';
+            wrapper.style.flexDirection='column';
+            wrapper.style.alignItems='center';
+            wrapper.appendChild(canvas);
+            wrapper.appendChild(legenda);
+            container.appendChild(wrapper);
+        }
+        pdf.destroy();
+    }
+}
+
+async function renderSectionWithSolverPreview(section){
+    renderSection(section); // render the list of files and rules
+
+    const previewContainer = section==='mobile' 
+        ? document.getElementById('mobilePreviewContainer')
+        : document.getElementById('desktopPreviewContainer');
+
+    // load actual PDF page counts
+    const sectionFiles = marcadorDraft.paginas[section] || [];
+    const pdfLengths = {};
+
+    for(const fileObj of sectionFiles){
+        const fileName = fileObj.fileName;
+        const fileUrl = `/projetoextensaofsg2/pdfs/${fileName}`;
+        const pdf = await pdfjsLib.getDocument(fileUrl).promise;
+        pdfLengths[fileName] = pdf.numPages;
+        pdf.destroy();
+    }
+
+    const solvedPages = solveRules(sectionFiles, pdfLengths);
+    await renderPreviewFromSolved(previewContainer, solvedPages);
+}
+
+
+
+
+
+
+
+
+function addDraftToSavedMarkers() {
+    const clone = JSON.parse(JSON.stringify(marcadorDraft)); // deep copy
+    savedMarkers.push(clone);
+    renderMarkersList();
+}
+
+function renderMarkersList() {
+    markersListContainer.innerHTML = '';
+    if (!savedMarkers.length) {
+        markersListContainer.innerHTML = '<div style="color:#666;font-size:13px">Nenhum marcador salvo.</div>';
+        return;
+    }
+    savedMarkers.forEach((m, idx) => {
+        const card = document.createElement('div');
+        card.style = `
+            border:1px solid #ddd;
+            padding:6px;
+            margin-bottom:6px;
+            border-radius:6px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            background:#fafafa;
+        `;
+        const title = document.createElement('strong');
+        title.textContent = m.nome;
+        title.style.color = m.cor || '#000';
+
+        const btns = document.createElement('div');
+        btns.style.display='flex';
+        btns.style.gap='4px';
+
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Editar';
+        editBtn.onclick = () => loadMarkerForEdit(idx);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = 'Remover';
+        removeBtn.onclick = () => { savedMarkers.splice(idx,1); renderMarkersList(); };
+
+        const upBtn = document.createElement('button');
+        upBtn.textContent = '↑';
+        upBtn.onclick = () => {
+            if (idx===0) return;
+            [savedMarkers[idx-1], savedMarkers[idx]] = [savedMarkers[idx], savedMarkers[idx-1]];
+            renderMarkersList();
+        };
+
+        const downBtn = document.createElement('button');
+        downBtn.textContent = '↓';
+        downBtn.onclick = () => {
+            if (idx===savedMarkers.length-1) return;
+            [savedMarkers[idx+1], savedMarkers[idx]] = [savedMarkers[idx], savedMarkers[idx+1]];
+            renderMarkersList();
+        };
+
+        btns.append(upBtn, downBtn, editBtn, removeBtn);
+        card.append(title, btns);
+        markersListContainer.appendChild(card);
+    });
+}
+
+function loadMarkerForEdit(idx) {
+    const m = savedMarkers[idx];
+    if (!m) return;
+
+    marcadorDraft.nome = m.nome;
+    marcadorDraft.cor = m.cor;
+    marcadorDraft.paginas = JSON.parse(JSON.stringify(m.paginas));
+
+    document.getElementById('marcadorNome').value = m.nome;
+    document.getElementById('marcadorCor').value = m.cor || '#ff0000';
+
+    renderSectionWithSolverPreview('mobile');
+    renderSectionWithSolverPreview('desktop');
+}
+
+
+
+
+
+
+
+
+
+
+
+
+//0000000000000
+
+
+function postAuthInit() {
+    tokenInput.classList.add('hidden')
+    enviarTokenBtn.classList.add('hidden')
+    document.querySelectorAll('.conteudoPrincipal').forEach(el => el.classList.remove('hidden'));
+    refreshBtn.onclick()
+    agendadorAtualizarLista()
+    document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible'){ agendadorAtualizarLista();}
+});
+}
+
+enviarTokenBtn.onclick=async()=>{
+  const t = tokenInput.value.trim()
+  if(!t) return
+  if(await validarToken(t)){
+    salvarToken(t)
+    postAuthInit()
+  } else msg('Token inválido',true)
+}
+
+refreshBtn.onclick = async () => {
+    const t0 = performance.now();
+    setEstadoPonteiro('updating');
+    try {
+        await atualizarLista();
+    } catch(e){ console.error(e); }
+    const elapsed = performance.now() - t0;
+    const restante = Math.max(0, 1000 - elapsed);
+    setTimeout(() => setEstadoPonteiro('wait'), restante);
+};
+
+(async()=>{
+  if(token){
+    if(await validarToken(token)){
+      postAuthInit()
+    } else {
+      tokenInput.classList.remove('hidden')
+      enviarTokenBtn.classList.remove('hidden')
+      document.querySelectorAll('.conteudoPrincipal').forEach(el => el.classList.remove('hidden'));
+      localStorage.removeItem(KEY_TOKEN)
+      msg('token inválido',true)
+    }
+  }
+})()
+
+
+
+
+</script>
+
+<script>
+  const trelloCipherB64 = "COLOQUE_AQUI_SEU_CIPHER_B64"; // Trello cifrado
+  
+  // Deriva chave AES-GCM de 256 bits a partir do token do GitHub
+  async function keyFromGithubToken(githubToken) {
+      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(githubToken));
+      return crypto.subtle.importKey('raw', hash, 'AES-GCM', false, ['encrypt', 'decrypt']);
+  }
+  
+  // Decifra a string Base64 (IV + ciphertext) e retorna token do Trello
+  async function decryptTrelloToken(cipherB64, githubToken) {
+      const data = Uint8Array.from(atob(cipherB64), c => c.charCodeAt(0));
+      const iv = data.slice(0, 12);
+      const ciphertext = data.slice(12);
+  
+      const key = await keyFromGithubToken(githubToken);
+      const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+      return new TextDecoder().decode(decrypted);
+  }
+  
+  // ----------------------
+  // Exemplo de integração no fluxo
+  async function initAfterGithubLogin() {
+      const githubToken = localStorage.getItem(KEY_TOKEN);
+      if (!githubToken) return console.warn('GitHub token não encontrado.');
+  
+      try {
+          const trelloToken = await decryptTrelloToken(trelloCipherB64, githubToken);
+          console.log('Token do Trello disponível:', trelloToken);
+  
+          // Agora você pode usar trelloToken em chamadas da API do Trello
+          window.trelloToken = trelloToken; // opcional: guardar globalmente
+      } catch(e) {
+          console.error('Erro ao decifrar Trello token:', e);
+      }
+  }
+  
+  // Chama após validar/receber GitHub token
+  initAfterGithubLogin();
+  </script>
+  
+
+
+
+</body>
+</html>
